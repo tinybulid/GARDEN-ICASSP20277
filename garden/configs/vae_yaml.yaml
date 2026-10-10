@@ -1,0 +1,13 @@
+model:
+  n_devices: 10
+  n_scenes: 10
+  dim: 512
+  kl_weight: 1.0e-8
+  pretrained: cvssp/audioldm-s-full-v2
+
+train:
+  epochs: 30
+  batch_size: 32
+  lr: 5.0e-5
+  workers: 8
+  seed: 0

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "garden"
+version = "0.1.0"
+description = "Generative augmentation for robust device-effect normalization via source-conditioned cycle consistency"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Hossein Sharifi" },
+    { name = "Behnam Raoufi" },
+]
+dependencies = [
+    "torch>=2.1,<2.9",
+    "torchaudio>=2.1,<2.9",
+    "numpy",
+    "pandas",
+    "pyyaml",
+    "soundfile",
+    "diffusers>=0.21",
+    "transformers>=4.30",
+    "timm>=0.9",
+]
+
+[project.urls]
+Homepage = "https://acoustilight.github.io/GARDEN/"
+
+[tool.setuptools.packages.find]
+include = ["garden*"]

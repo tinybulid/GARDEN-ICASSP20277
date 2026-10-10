@@ -1,0 +1,9 @@
+torch>=2.1,<2.9
+torchaudio>=2.1,<2.9
+numpy
+pandas
+pyyaml
+soundfile
+diffusers>=0.21
+transformers>=4.30
+timm>=0.9

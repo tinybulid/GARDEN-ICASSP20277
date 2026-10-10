@@ -1,0 +1,24 @@
+model:
+  conditional: true
+  lambda_cyc: 10.0
+  pool_size: 50
+
+ir:
+  clusters: 32
+  subset: null
+  seed: 0
+
+sampler:
+  batch: 32
+  n_devices: 4
+  n_irs: 4
+  per_source: 4
+
+train:
+  epochs: 400
+  hold: 200
+  lr: 5.0e-5
+  betas: [0.5, 0.999]
+  workers: 8
+  seed: 0
+  name: cyclegan
