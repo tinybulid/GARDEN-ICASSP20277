@@ -43,59 +43,67 @@ Device variability is broadened by two complementary augmentations:
 ## 📁 Repository Structure
 
 ```text
-garden/
-├── configs/
-│   ├── diffusion_yaml.yaml      # Hyperparameters for latent diffusion training
-│   ├── gan_yaml.yaml            # Hyperparameters for cycle-consistent GAN training
-│   └── vae_yaml.yaml            # Hyperparameters for VAE fine-tuning
-├── garden/
-│   ├── data/
-│   │   ├── dataset.py           # Dataset loaders for training and evaluation splits
-│   │   ├── features.py          # Mel-spectrogram feature extraction utilities
-│   │   └── ir_augment.py        # Impulse-response (IR) convolution and augmentation
-│   ├── models/
-│   │   ├── __init__.py          # Model module exports
-│   │   ├── classifiers.py       # Downstream ASC backbones (ResNet-50, EfficientNet-B0, CNN14, AST, ViT-B/16)
-│   │   ├── cyclegan.py          # Unconditional G, source-conditioned F (FiLM), PatchGAN discriminators
-│   │   ├── diffusion.py         # Latent diffusion U-Net with dual-condition guidance
-│   │   └── vae.py               # VAE encoder/decoder adapted from AudioLDM
-│   ├── __init__.py              # Package initialization
-│   ├── metrics.py               # Evaluation metrics (device-wise and macro accuracy)
-│   └── utils.py                 # General helper utilities
-├── scripts/
-│   ├── cluster.py               # Cosine-based k-means clustering of IR profiles (M = 32)
-│   ├── eval.py                  # Evaluation of saved checkpoints on test splits
-│   ├── extract.py               # Mel-spectrogram extraction from raw audio
-│   ├── fig.py                   # Visualizations (e.g., t-SNE of CLS embeddings)
-│   ├── gen_pool.py              # Generation of the synthetic diffusion augmentation pool
-│   ├── pred.py                  # Prediction on individual audio clips
-│   ├── tra_clf.py               # Training of downstream ASC classifiers
-│   ├── tra_diff.py              # Training of the conditional latent diffusion model
-│   ├── tra_gan.py               # Training of the cycle-consistent GAN (G and F)
-│   ├── tra_kd.py                # Knowledge distillation / CP-Mobile training
-│   └── tra_va.py                # VAE fine-tuning
-├── .gitignore                   # Git ignore rules
-├── pyproject.toml               # Project metadata and build configuration
-├── README.md                    # Project documentation (this file)
-├── requirements.txt             # Python dependencies
-└── utils_py.py                  # Supplementary utility scripts
+GARDEN-ICASSP20277/
+├── garden/                          # Implementation package
+│   ├── checkpoints/
+│   │   └── readme.md                # Checkpoint download links and usage (see below)
+│   ├── configs/
+│   │   ├── diffusion_yaml.yaml      # Settings for latent diffusion training
+│   │   ├── gan_yaml.yaml            # Settings for cycle-consistent GAN training
+│   │   └── vae_yaml.yaml            # Settings for VAE fine-tuning
+│   ├── garden/                      # Core Python package
+│   │   ├── data/
+│   │   │   ├── dataset.py           # Clip lists, Mel datasets, CycleSampler, augmentation builders
+│   │   │   ├── features.py          # Log-mel feature extraction (LogMel, audio loading)
+│   │   │   └── ir_augment.py        # IR clustering (cluster_irs) and IR convolution augmentation
+│   │   ├── models/
+│   │   │   ├── __init__.py          # Model module exports
+│   │   │   ├── classifiers.py       # SceneClassifier / GardenClassifier and the five ASC backbones
+│   │   │   ├── cyclegan.py          # CycleGAN: unconditional G, source-conditioned F (FiLM), PatchGAN D_A/D_B
+│   │   │   ├── diffusion.py         # LatentDiffusion U-Net with dual-condition guidance and DDIM sampling
+│   │   │   └── vae.py               # ConditionalVAE encoder/decoder adapted from AudioLDM
+│   │   ├── __init__.py              # Package initialization
+│   │   ├── metrics.py               # predict() and scores() — device-wise / macro accuracy
+│   │   └── utils.py                 # Paths (CKPT_DIR, POOL_DIR, ...), seeding, EMA, checkpoint I/O
+│   ├── scripts/
+│   │   ├── cluster.py               # Cosine-based k-means clustering of IR profiles (default M = 32)
+│   │   ├── eval.py                  # Evaluate saved classifier checkpoints; writes results/*.json
+│   │   ├── extract.py               # Pre-compute and cache log-mel spectrograms for all clips
+│   │   ├── fig.py                   # Full ablation pipeline for Fig. 2 (prep → train → collect → plot)
+│   │   ├── gen_pool.py              # Sample the synthetic diffusion augmentation pool (default 100k)
+│   │   ├── pred.py                  # Predictions on the TAU evaluation split (DCASE-style CSV output)
+│   │   ├── tra_clf.py               # Train downstream ASC classifiers (with or without GARDEN's G)
+│   │   ├── tra_diff.py              # Train the conditional latent diffusion model
+│   │   ├── tra_gan.py               # Train the cycle-consistent GAN (G and F)
+│   │   ├── tra_kd.py                # CP-Mobile training with multi-teacher knowledge distillation
+│   │   └── tra_va.py                # Fine-tune the conditional VAE
+│   ├── gitignore_file.gitignore     # Git ignore rules
+│   ├── pyproject.toml               # Project metadata and build configuration
+│   ├── readme.md                    # Package-level documentation
+│   ├── requirements.txt             # Python dependencies
+│   └── utils_py.py                  # Supplementary utility scripts
+└── README.md                        # Main project documentation (this file)
 ```
 
 ### Component Overview
 
-- **`configs/`** — YAML files specifying hyperparameters, data paths, and
-  training settings for each of the three training stages (VAE, diffusion,
-  GAN). Edit the paths in these files before running the scripts.
-- **`garden/data/`** — Audio loading and splitting (`dataset.py`), log-mel
-  feature computation (`features.py`), and IR convolution with class-based
-  sampling (`ir_augment.py`).
-- **`garden/models/`** — All network architectures: the AudioLDM-based VAE,
-  the conditional diffusion U-Net (FiLM-modulated by timestep, device, and
-  scene embeddings), the CycleGAN generators/discriminators, and the five
-  downstream classifier backbones.
-- **`scripts/`** — Executable entry points covering the full pipeline:
+- **`garden/garden/data/`** — Clip listing and dataset classes (`dataset.py`),
+  log-mel feature computation (`features.py`), and IR clustering/convolution
+  (`ir_augment.py`).
+- **`garden/garden/models/`** — All network architectures: the AudioLDM-based
+  conditional VAE, the latent diffusion U-Net (FiLM-modulated by timestep,
+  device, and scene embeddings), the CycleGAN generators/discriminators, and
+  the downstream classifier backbones.
+- **`garden/garden/utils.py`** — Central path configuration (data,
+  checkpoints, diffusion pool, IR clusters), seeding, EMA, and checkpoint
+  save/load helpers used by all scripts.
+- **`garden/scripts/`** — Executable entry points covering the full pipeline:
   feature extraction → generative training → augmentation-pool generation →
-  GAN training → classifier training → evaluation and prediction.
+  IR clustering → GAN training → classifier training → evaluation and
+  prediction. All hyperparameters are exposed as command-line arguments with
+  the paper's values as defaults.
+- **`garden/checkpoints/`** — Target folder for the pretrained weights
+  (download links below).
 
 ---
 
@@ -109,7 +117,7 @@ single GPU.
 
 ```bash
 git clone <REPOSITORY_URL>
-cd garden
+cd GARDEN-ICASSP20277/garden
 ```
 
 2. Install the Python dependencies:
@@ -141,78 +149,87 @@ Note that **only `G` is required for test-time device normalization**.
 
 ## 🚀 Step-by-Step Guide
 
+All scripts read data and checkpoint locations from the paths defined in
+`garden/utils.py`, and every hyperparameter defaults to the value used in the
+paper — so each stage can be run with no arguments.
+
 ### Step 1 — Extract Mel-Spectrograms
 
 Audio is converted to mono and resampled to **32 kHz**. Power spectra are
 computed with a **4096-point FFT** and a **hop of 502 samples**, projected
 onto **256 mel bands**, and converted to decibels with the dynamic range
 clipped to 80 dB below the clip maximum. Each one-second clip yields a
-**256 × 64 log-mel matrix**, which is the common front-end representation for
-all stages. For the generative stages, values are linearly rescaled to
-[−1, 1] and mapped back to decibels before classification.
+**256 × 64 log-mel matrix**. This script pre-computes and caches the log-mel
+features for all training and test clips:
 
 ```bash
-python scripts/extract.py --config configs/vae_yaml.yaml \
-    --data_dir /path/to/audio/dataset --output_dir /path/to/extracted_mels
+python scripts/extract.py --workers 8
 ```
 
 ### Step 2 — Train the Pipeline
 
 The training pipeline consists of six sequential stages:
 
-**2.1 — Fine-tune the VAE.** The pre-trained AudioLDM mel-spectrogram
-autoencoder is adapted to the 256-mel representation (30 epochs,
-reconstruction + KL objective, KL weight 1e-8). It compresses each
-256 × 64 spectrogram into an 8 × 64 × 16 latent and is **frozen afterwards**:
+**2.1 — Fine-tune the VAE.** The conditional VAE (adapted from AudioLDM) is
+fine-tuned on the training pool for 30 epochs, conditioned on device and
+scene. The resulting `vae.pt` checkpoint is frozen and reused by all later
+stages:
 
 ```bash
-python scripts/tra_va.py --config configs/vae_yaml.yaml
+python scripts/tra_va.py --epochs 30 --batch-size 32 --lr 5e-5
 ```
 
-**2.2 — Train the conditional latent diffusion model.** The U-Net denoiser
-(128 base channels, multipliers 1/2/4, self-attention at 16 × 4) is trained
-for 200 epochs with AdamW (lr 1e-4, batch 64, EMA 0.9999) using
-dual-condition classifier-free guidance on device `d` and scene `c`:
+**2.2 — Train the conditional latent diffusion model.** The U-Net denoiser is
+trained for 200 epochs with AdamW (lr 1e-4, batch 64) and an EMA of the
+weights (decay 0.9999), on latents produced by the frozen VAE. The EMA
+weights are saved in `diffusion.pt` and used for sampling:
 
 ```bash
-python scripts/tra_diff.py --config configs/diffusion_yaml.yaml
+python scripts/tra_diff.py --epochs 200 --batch-size 64 --lr 1e-4 --ema 0.9999
 ```
 
-**2.3 — Generate the synthetic diffusion pool.** 100,000 balanced
-mel-spectrograms are sampled with DDIM (50 steps, `w_d = 6`, `w_c = 2`),
-with device and scene labels drawn uniformly:
+**2.3 — Generate the synthetic diffusion pool.** 100,000 mel-spectrograms are
+sampled with DDIM (50 steps, `w_d = 6`, `w_c = 2`), with device and scene
+labels drawn uniformly over all training devices and scenes. The pool
+(`mels.npy`, `devices.npy`, `scenes.npy`) is written to the pool directory:
 
 ```bash
-python scripts/gen_pool.py --output_dir /path/to/synthetic_pool
+python scripts/gen_pool.py --n 100000 --steps 50 --wd 6.0 --wc 2.0
 ```
 
-**2.4 — Cluster impulse responses.** K = 320 microphone IRs are represented
-by mean-centered, L2-normalized mel-band log-magnitude profiles and grouped
-into M = 32 classes via cosine-based k-means. The class index serves as the
-source label `s` during augmentation:
+**2.4 — Cluster impulse responses.** The microphone IRs are represented by
+mean-centered, L2-normalized mel-band log-magnitude profiles and grouped into
+M = 32 classes via cosine-based k-means. The cluster assignment file is used
+as the source label `s` during augmentation:
 
 ```bash
-python scripts/cluster.py --ir_bank_path /path/to/irs --num_clusters 32
+python scripts/cluster.py --clusters 32
 ```
 
-**2.5 — Train the cycle-consistent GAN.** `G` and `F` use CycleGAN ResNet
-generators (9 residual blocks); `D_A`/`D_B` are 70 × 70 PatchGANs. Training
-uses the least-squares loss, λ_cyc = 10, Adam (β = 0.5/0.999), and 400
-epochs (lr 5e-5, linearly decayed over the last 200). Each step draws 32
-domain-A and 32 domain-B samples, with the domain-B half balanced across
-four device sources and four IR classes:
+**2.5 — Train the cycle-consistent GAN.** `G` and `F` are trained with the
+least-squares loss, λ_cyc = 10, Adam (β = 0.5/0.999), for 400 epochs (lr
+5e-5 held for the first 200 epochs — `--hold` — then linearly decayed). The
+`--mode` flag selects the F variant used in the ablations: `cond`
+(source-conditioned F, full model), `uncond` (F without source conditioning),
+or `none` (no F). The forward generator is additionally exported as
+`cyclegan_G.pt`:
 
 ```bash
-python scripts/tra_gan.py --config configs/gan_yaml.yaml
+python scripts/tra_gan.py --mode cond --aug both --epochs 400 --hold 200 --lambda-cyc 10.0
 ```
 
 **2.6 — Train downstream classifiers / knowledge distillation.** Classifiers
 are trained on domain-A representations: every domain-B clip is first mapped
-by `G` to the reference domain:
+by the frozen `G` to the reference domain. Backbone-specific learning rates
+are applied automatically, and the best checkpoint (by macro accuracy) is
+saved with its scores:
 
 ```bash
-python scripts/tra_clf.py --backbone resnet50
-# Or, for CP-Mobile with knowledge distillation:
+python scripts/tra_clf.py --backbone resnet50 --gan cyclegan_G.pt
+# Available backbones: resnet50, efficientnet_b0, cnn14, ast, vit_b16
+# Baseline without GARDEN normalization:
+python scripts/tra_clf.py --backbone resnet50 --no-garden
+# CP-Mobile with multi-teacher knowledge distillation (teachers in checkpoints/teachers/):
 python scripts/tra_kd.py
 ```
 
@@ -225,47 +242,30 @@ At inference, **only the forward generator `G`** is used: each test clip —
 from a known or completely unseen device — is mapped to the reference
 domain A and then classified. No device identity is required.
 
-Evaluate saved checkpoints on the test splits:
+Evaluate saved classifier checkpoints on the development-test split
+(by default all five `clf_<backbone>.pt` checkpoints; per-device,
+known/unseen, and macro accuracies are written to `results/results.json`
+with mean ± std across backbones):
 
 ```bash
-python scripts/eval.py --checkpoint_dir checkpoints/ --split test
+python scripts/eval.py --ckpts clf_resnet50.pt clf_vit_b16.pt
 ```
 
-Run prediction on an individual audio clip:
+Generate predictions on the TAU evaluation split (DCASE-style tab-separated
+CSV with per-scene probabilities, for submission to the organizers):
 
 ```bash
-python scripts/pred.py --checkpoint checkpoints/best_model.pth --input clip.wav
+python scripts/pred.py --ckpt cpmobile_kd.pt
 ```
 
-Reproduce the t-SNE embedding visualization (Fig. 3 of the paper):
+Reproduce the full ablation study of Fig. 2 (prepares IR clusterings and
+diffusion pools, trains GANs in all three modes and classifiers for every
+panel setting, collects scores, and renders the plots to
+`results/fig2/fig2.png`/`.pdf`):
 
 ```bash
-python scripts/fig.py --checkpoint_dir checkpoints/
+python scripts/fig.py --stages prep train collect plot --panels a b c d e
 ```
-
----
-
-## 📊 Results
-
-**Device generalization (TAU, DCASE 2025 Task 1 protocol, mean over five
-backbones):**
-
-| Model | Known | Unseen | Gap |
-|---|---|---|---|
-| Baseline | 59.9 | 45.7 | 14.2 |
-| RFN | 60.2 | 50.9 | 9.3 |
-| Freq-MixStyle | **60.4** | 49.6 | 10.8 |
-| EG-CL | 59.7 | 55.6 | 4.1 |
-| MC-200-Adapt | 59.7 | 58.3 | 1.4 |
-| **GARDEN (ours)** | 58.8 | **58.6** | **0.2** |
-
-GARDEN achieves the **highest unseen-device accuracy (58.6%)** and the
-**smallest known–unseen gap (0.2%)** among the compared methods, at the cost
-of slightly lower known-device accuracy.
-
-**DCASE 2025 evaluation split (organizer-scored):** applied to a lightweight
-CP-Mobile–KD classifier, GARDEN raises unseen-device accuracy from 55.7% to
-**61.1%** and reduces the known–unseen gap from **6.4% to 0.5%**.
 
 ---
 
